@@ -18,15 +18,7 @@ Simple script to control a robot from teleoperation.
 Example:
 
 ```shell
-python -m lerobot.teleoperate \
-    --robot.type=so101_follower \
-    --robot.port=/dev/tty.usbmodem58760431541 \
-    --robot.cameras="{ front: {type: opencv, index_or_path: 0, width: 1920, height: 1080, fps: 30}}" \
-    --robot.id=black \
-    --teleop.type=so101_leader \
-    --teleop.port=/dev/tty.usbmodem58760431551 \
-    --teleop.id=blue \
-    --display_data=true
+python -m lerobot.teleoperate --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.cameras="{ front: {type: opencv, index_or_path: 2, width: 640, height: 480, fps: 30}}" --robot.id=robot1 --teleop.type=so101_leader --teleop.port=/dev/ttyACM2 --teleop.id=robot2 --display_data=true
 ```
 """
 

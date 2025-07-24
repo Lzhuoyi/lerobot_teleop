@@ -19,6 +19,7 @@ import rerun as rr
 
 from lerobot.common.cameras.opencv.configuration_opencv import OpenCVCameraConfig  # noqa: F401
 from lerobot.common.cameras.realsense.configuration_realsense import RealSenseCameraConfig  # noqa: F401
+from lerobot.common.robots.so100_follower.config_so100_follower import SO100FollowerConfig
 from lerobot.common.robots import (  # noqa: F401
     Robot,
     RobotConfig,
