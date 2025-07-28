@@ -23,17 +23,17 @@ from ..config import RobotConfig
 
 def xlerobot_cameras_config() -> dict[str, CameraConfig]:
     return {
-        # "left_wrist": OpenCVCameraConfig(
-        #     index_or_path="/dev/video2", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        # ),
+        "left_wrist": OpenCVCameraConfig(
+            index_or_path="/dev/video2", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
+        ),
 
-        # "right_wrist": OpenCVCameraConfig(
-        #     index_or_path="/dev/video4", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        # ),  
+        "right_wrist": OpenCVCameraConfig(
+            index_or_path="/dev/video4", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
+        ),  
 
-        # "head(RGDB)": OpenCVCameraConfig(
-        #     index_or_path="/dev/video6", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        # ),                     
+        "head(RGDB)": OpenCVCameraConfig(
+            index_or_path="/dev/video6", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
+        ),                     
         
         # "head": RealSenseCameraConfig(
         #     serial_number_or_name="125322060037",  # Replace with camera SN

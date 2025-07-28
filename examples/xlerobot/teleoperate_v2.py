@@ -282,13 +282,23 @@ class SimpleTeleopArm:
                     + self.pitch
                 )
                 
-                # Send action to robot
+                # Get action
                 action = self.p_control_action(robot)
-                robot.send_action(action)
+                
+                # Determine which arm is executing and send appropriate action structure
+                if self.prefix == "left":
+                    # Send left arm action with empty actions for other components
+                    robot_action = {**action, **{}, **{}, **{}}
+                elif self.prefix == "right":
+                    # Send right arm action with empty actions for other components
+                    robot_action = {**{}, **action, **{}, **{}}
+                
+                # Send action to robot
+                robot.send_action(robot_action)
                 
                 # Get observation and log data
                 obs = robot.get_observation()
-                log_rerun_data(obs, action)
+                log_rerun_data(obs, robot_action)
                 
             except Exception as e:
                 print(f"[{self.prefix}] IK failed at x={self.current_x:.4f}, y={self.current_y:.4f}: {e}")
@@ -411,7 +421,7 @@ def main():
                 left_arm.execute_rectangular_trajectory(robot, fps=FPS)
                 continue
 
-            # Handle rectangular trajectory for right arm (h key)  
+            # Handle rectangular trajectory for right arm (Y key)  
             if right_key_state.get('triangle'):
                 print("[MAIN] Right arm rectangular trajectory triggered!")
                 right_arm.execute_rectangular_trajectory(robot, fps=FPS)
