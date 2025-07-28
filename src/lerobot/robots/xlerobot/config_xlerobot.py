@@ -23,17 +23,17 @@ from ..config import RobotConfig
 
 def xlerobot_cameras_config() -> dict[str, CameraConfig]:
     return {
-        "left_wrist": OpenCVCameraConfig(
-            index_or_path="/dev/video2", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        ),
+        # "left_wrist": OpenCVCameraConfig(
+        #     index_or_path="/dev/video0", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
+        # ),
 
-        "right_wrist": OpenCVCameraConfig(
-            index_or_path="/dev/video4", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        ),  
+        # "right_wrist": OpenCVCameraConfig(
+        #     index_or_path="/dev/video2", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
+        # ),  
 
-        "head(RGDB)": OpenCVCameraConfig(
-            index_or_path="/dev/video6", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        ),                     
+        # "head(RGDB)": OpenCVCameraConfig(
+        #     index_or_path="/dev/video5", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
+        # ),                     
         
         # "head": RealSenseCameraConfig(
         #     serial_number_or_name="125322060037",  # Replace with camera SN
@@ -51,8 +51,8 @@ def xlerobot_cameras_config() -> dict[str, CameraConfig]:
 @dataclass
 class XLerobotConfig(RobotConfig):
     
-    port1: str = "/dev/ttyACM1"  # port to connect to the bus (so101 + head camera)
-    port2: str = "/dev/ttyACM0"  # port to connect to the bus (same as lekiwi setup)
+    port1: str = "/dev/ttyACM0"  # port to connect to the bus (so101 + head camera)
+    port2: str = "/dev/ttyACM1"  # port to connect to the bus (same as lekiwi setup)
     disable_torque_on_disconnect: bool = True
 
     # `max_relative_target` limits the magnitude of the relative positional target vector for safety purposes.
@@ -64,6 +64,24 @@ class XLerobotConfig(RobotConfig):
 
     # Set to `True` for backward compatibility with previous policies/dataset
     use_degrees: bool = False
+
+    teleop_keys: dict[str, str] = field(
+        default_factory=lambda: {
+            # Movement
+            "forward": "i",
+            "backward": "k",
+            "left": "j",
+            "right": "l",
+            "rotate_left": "u",
+            "rotate_right": "o",
+            # Speed control
+            "speed_up": "n",
+            "speed_down": "m",
+            # quit teleop
+            "quit": "b",
+        }
+    )
+
 
 
 @dataclass

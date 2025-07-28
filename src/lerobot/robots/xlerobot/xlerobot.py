@@ -51,6 +51,14 @@ class XLerobot(Robot):
     def __init__(self, config: XLerobotConfig):
         super().__init__(config)
         self.config = config
+        self.teleop_keys = config.teleop_keys
+        # Define three speed levels and a current index
+        self.speed_levels = [
+            {"xy": 0.1, "theta": 30},  # slow
+            {"xy": 0.2, "theta": 60},  # medium
+            {"xy": 0.3, "theta": 90},  # fast
+        ]
+        self.speed_index = 0  # Start at slow
         norm_mode_body = MotorNormMode.DEGREES if config.use_degrees else MotorNormMode.RANGE_M100_100
         if self.calibration.get("left_arm_shoulder_pan") is not None:
             calibration1 = {
@@ -274,7 +282,7 @@ class XLerobot(Robot):
             self.bus1.write("P_Coefficient", name, 16)
             # Set I_Coefficient and D_Coefficient to default value 0 and 32
             self.bus1.write("I_Coefficient", name, 0)
-            self.bus1.write("D_Coefficient", name, 32)
+            self.bus1.write("D_Coefficient", name, 43)
         
         for name in self.head_motors:
             self.bus1.write("Operating_Mode", name, OperatingMode.POSITION.value)
@@ -282,7 +290,7 @@ class XLerobot(Robot):
             self.bus1.write("P_Coefficient", name, 16)
             # Set I_Coefficient and D_Coefficient to default value 0 and 32
             self.bus1.write("I_Coefficient", name, 0)
-            self.bus1.write("D_Coefficient", name, 32)
+            self.bus1.write("D_Coefficient", name, 43)
         
         for name in self.right_arm_motors:
             self.bus2.write("Operating_Mode", name, OperatingMode.POSITION.value)
@@ -290,7 +298,7 @@ class XLerobot(Robot):
             self.bus2.write("P_Coefficient", name, 16)
             # Set I_Coefficient and D_Coefficient to default value 0 and 32
             self.bus2.write("I_Coefficient", name, 0)
-            self.bus2.write("D_Coefficient", name, 32)
+            self.bus2.write("D_Coefficient", name, 43)
         
         for name in self.base_motors:
             self.bus2.write("Operating_Mode", name, OperatingMode.VELOCITY.value)
@@ -445,6 +453,41 @@ class XLerobot(Robot):
             "y.vel": y,
             "theta.vel": theta,
         }  # m/s and deg/s
+    
+    def _from_keyboard_to_base_action(self, pressed_keys: np.ndarray):
+        # Speed control
+        if self.teleop_keys["speed_up"] in pressed_keys:
+            self.speed_index = min(self.speed_index + 1, 2)
+        if self.teleop_keys["speed_down"] in pressed_keys:
+            self.speed_index = max(self.speed_index - 1, 0)
+        speed_setting = self.speed_levels[self.speed_index]
+        xy_speed = speed_setting["xy"]  # e.g. 0.1, 0.25, or 0.4
+        theta_speed = speed_setting["theta"]  # e.g. 30, 60, or 90
+
+        x_cmd = 0.0  # m/s forward/backward
+        y_cmd = 0.0  # m/s lateral
+        theta_cmd = 0.0  # deg/s rotation
+
+        if self.teleop_keys["forward"] in pressed_keys:
+            x_cmd += xy_speed
+        if self.teleop_keys["backward"] in pressed_keys:
+            x_cmd -= xy_speed
+        if self.teleop_keys["left"] in pressed_keys:
+            y_cmd += xy_speed
+        if self.teleop_keys["right"] in pressed_keys:
+            y_cmd -= xy_speed
+        if self.teleop_keys["rotate_left"] in pressed_keys:
+            theta_cmd += theta_speed
+        if self.teleop_keys["rotate_right"] in pressed_keys:
+            theta_cmd -= theta_speed
+            
+        return {
+            # "head_motor_1.pos": 0.0,  # Head motors are not controlled by keyboard
+            # "head_motor_2.pos": 0.0,  # TODO: implement head control
+            "x.vel": x_cmd, 
+            "y.vel": y_cmd,
+            "theta.vel": theta_cmd,
+        }
 
     def get_observation(self) -> dict[str, Any]:
         if not self.is_connected:
@@ -531,10 +574,16 @@ class XLerobot(Robot):
         left_arm_pos_raw = {k.replace(".pos", ""): v for k, v in left_arm_pos.items()}
         right_arm_pos_raw = {k.replace(".pos", ""): v for k, v in right_arm_pos.items()}
         head_pos_raw = {k.replace(".pos", ""): v for k, v in head_pos.items()}
-        self.bus1.sync_write("Goal_Position", left_arm_pos_raw)
-        self.bus2.sync_write("Goal_Position", right_arm_pos_raw)
-        self.bus1.sync_write("Goal_Position", head_pos_raw)
-        self.bus2.sync_write("Goal_Velocity", base_wheel_goal_vel)
+        
+        # Only sync_write if there are motors to write to
+        if left_arm_pos_raw:
+            self.bus1.sync_write("Goal_Position", left_arm_pos_raw)
+        if right_arm_pos_raw:
+            self.bus2.sync_write("Goal_Position", right_arm_pos_raw)
+        if head_pos_raw:
+            self.bus1.sync_write("Goal_Position", head_pos_raw)
+        if base_wheel_goal_vel:
+            self.bus2.sync_write("Goal_Velocity", base_wheel_goal_vel)
         return {
             **left_arm_pos,
             **right_arm_pos,

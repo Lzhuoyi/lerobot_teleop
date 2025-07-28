@@ -12,7 +12,7 @@ import time
 import numpy as np
 import math
 
-from lerobot.robots.xlerobot import XLerobotClient, XLerobotClientConfig
+from lerobot.robots.xlerobot import XLerobotClient, XLerobotClientConfig, XLerobotConfig, XLerobot
 from lerobot.utils.robot_utils import busy_wait
 from lerobot.utils.visualization_utils import _init_rerun, log_rerun_data
 from lerobot.model.SO101Robot import SO101Kinematics
@@ -36,8 +36,8 @@ RIGHT_KEYMAP = {
     'shoulder_pan+': '7', 'shoulder_pan-': '9',
     'wrist_roll+': '/', 'wrist_roll-': '*',
     'gripper+': '+', 'gripper-': '-',
-    'x+': '8', 'x-': '5', 'y+': '4', 'y-': '6',
-    'pitch+': '1', 'pitch-': '2',
+    'x+': '8', 'x-': '2', 'y+': '4', 'y-': '6',
+    'pitch+': '1', 'pitch-': '3',
     'reset': '0',
 
     'triangle': 'Y',  # Rectangle trajectory key
@@ -170,7 +170,7 @@ class SimpleHeadControl:
         return action
 
 class SimpleTeleopArm:
-    def __init__(self, kinematics, joint_map, initial_obs, prefix="left", kp=0.8):
+    def __init__(self, kinematics, joint_map, initial_obs, prefix="left", kp=0.81):
         self.kinematics = kinematics
         self.joint_map = joint_map
         self.prefix = prefix  # To distinguish left and right arm
@@ -190,7 +190,7 @@ class SimpleTeleopArm:
         self.pitch = 0.0
         # Set the degree step and xy step
         self.degree_step = 3
-        self.xy_step = 0.0041
+        self.xy_step = 0.0081
         # Set target positions to zero for P control
         self.target_positions = {
             "shoulder_pan": 0.0,
@@ -305,7 +305,7 @@ class SimpleTeleopArm:
                 break
                 
             # Maintain control frequency
-            busy_wait(dt)
+            # busy_wait(dt)
         
         print(f"[{self.prefix}] Trajectory execution finished.")
 
@@ -387,9 +387,20 @@ def main():
     robot_name = "my_xlerobot_pc"
 
     #Init the robot instance
-    robot_config = XLerobotClientConfig(remote_ip=ip, id=robot_name)
-    robot = XLerobotClient(robot_config)
-    robot.connect()
+    # robot_config = XLerobotClientConfig(remote_ip=ip, id=robot_name)
+    robot_config = XLerobotConfig()
+    # robot = XLerobotClient(robot_config)
+    robot = XLerobot(robot_config)
+    
+    try:
+        robot.connect()
+        print(f"[MAIN] Successfully connected to robot")
+    except Exception as e:
+        print(f"[MAIN] Failed to connect to robot: {e}")
+        print(robot_config)
+        print(robot)
+        return
+        
     _init_rerun(session_name="xlerobot_teleop_v2")
 
     #Init the keyboard instance
@@ -458,6 +469,7 @@ def main():
             robot.send_action(action)
 
             obs = robot.get_observation()
+            # print(f"[MAIN] Observation: {obs}")
             log_rerun_data(obs, action)
             # busy_wait(1.0 / FPS)
     finally:
