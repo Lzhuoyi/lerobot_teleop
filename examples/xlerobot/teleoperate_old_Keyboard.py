@@ -5,7 +5,7 @@ python -m lerobot.robots.xlerobot.xlerobot_host --robot.id=my_xlerobot
 
 # To Run the teleop:
 '''python
-PYTHONPATH=src python -m examples.xlerobot.teleoperate
+PYTHONPATH=src python -m examples.xlerobot.teleoperate_old_Keyboard
 '''
 
 import time

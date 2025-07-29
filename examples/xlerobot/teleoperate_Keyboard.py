@@ -5,7 +5,7 @@ PYTHONPATH=src python -m lerobot.robots.xlerobot.xlerobot_host --robot.id=my_xle
 
 # To Run the teleop:
 '''python
-PYTHONPATH=src python -m examples.xlerobot.teleoperate_v2
+PYTHONPATH=src python -m examples.xlerobot.teleoperate_Keyboard
 '''
 
 import time
@@ -382,14 +382,16 @@ class SimpleTeleopArm:
 def main():
     # Teleop parameters
     FPS = 50
-    # ip = "192.168.1.123"
-    ip = "localhost"
+    # ip = "192.168.1.123"  # This is for zmq connection
+    ip = "localhost"  # This is for local/wired connection
     robot_name = "my_xlerobot_pc"
 
-    #Init the robot instance
+    # For zmq connection
     # robot_config = XLerobotClientConfig(remote_ip=ip, id=robot_name)
+    # robot = XLerobotClient(robot_config)    
+
+    # For local/wired connection
     robot_config = XLerobotConfig()
-    # robot = XLerobotClient(robot_config)
     robot = XLerobot(robot_config)
     
     try:
