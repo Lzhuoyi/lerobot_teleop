@@ -47,15 +47,6 @@ RIGHT_KEYMAP = {
     'gripper+': 'right_trigger',
 }
 
-# Base control keymap - Only forward/backward and rotate left/right
-BASE_KEYMAP = {
-    'forward': 'dpad_down', 'backward': 'dpad_up',
-    'rotate_left': 'dpad_left', 'rotate_right': 'dpad_right',
-}
-
-# Global reset key for all components
-RESET_KEY = 'back'
-
 LEFT_JOINT_MAP = {
     "shoulder_pan": "left_arm_shoulder_pan",
     "shoulder_lift": "left_arm_shoulder_lift",
@@ -340,24 +331,37 @@ def get_xbox_key_state(joystick, keymap):
 
 def get_base_action(joystick, robot):
     """
-    Get base action from XBOX controller input - simplified to only forward/backward and rotate.
+    Get base action from XBOX controller input - handles both Arkanman and Omni drive modes.
     """
     # Read controller state
     buttons = [joystick.get_button(i) for i in range(joystick.get_numbuttons())]
     hats = joystick.get_hat(0) if joystick.get_numhats() > 0 else (0, 0)
+    
+    # Get current drive mode
+    drive_mode = get_drive_mode_toggle(joystick)
     
     # Get pressed keys for base control
     pressed_keys = set()
     
     # Map controller inputs to keyboard-like keys for base control
     if hats[1] == 1:   # D-pad up
-        pressed_keys.add('k')  # Forward
+        pressed_keys.add('k')  # Forward (same in both modes)
     if hats[1] == -1:  # D-pad down
-        pressed_keys.add('i')  # Backward
-    if hats[0] == -1:  # D-pad left
-        pressed_keys.add('u')  # Rotate left
-    if hats[0] == 1:   # D-pad right
-        pressed_keys.add('o')  # Rotate right
+        pressed_keys.add('i')  # Backward (same in both modes)
+    
+    # Handle left/right movement based on drive mode
+    if drive_mode == 'arkanman':
+        # Arkanman mode: D-pad left/right = rotate
+        if hats[0] == -1:  # D-pad left
+            pressed_keys.add('u')  # Rotate left
+        if hats[0] == 1:   # D-pad right
+            pressed_keys.add('o')  # Rotate right
+    else:  # omni mode
+        # Omni mode: D-pad left/right = strafe
+        if hats[0] == -1:  # D-pad left
+            pressed_keys.add('j')  # Move left
+        if hats[0] == 1:   # D-pad right
+            pressed_keys.add('l')  # Move right
     
     # Convert to numpy array and get base action
     keyboard_keys = np.array(list(pressed_keys))
@@ -367,37 +371,63 @@ def get_base_action(joystick, robot):
 
 def get_base_speed_control(joystick):
     """
-    Get base speed control from XBOX controller - LB for speed decrease, RB for speed increase.
-    Returns speed multiplier (1.0, 2.0, or 3.0) and prints current speed level.
+    Get base speed control from XBOX controller - LB alone toggles between low and medium speed.
+    Returns speed multiplier (1.0 or 2.0) and prints current speed level.
     """
     # Read controller state
     buttons = [joystick.get_button(i) for i in range(joystick.get_numbuttons())]
+    axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
     
-    # Get LB and RB states
+    # Get LB state
     lb_pressed = bool(buttons[4]) if len(buttons) > 4 else False
-    rb_pressed = bool(buttons[5]) if len(buttons) > 5 else False
     
     # Get current speed level from global variable
     global current_base_speed_level
     if 'current_base_speed_level' not in globals():
-        current_base_speed_level = 1  # Default speed level
+        current_base_speed_level = 1  # Default speed level (low)
     
-    # Speed control logic
-    if lb_pressed and not rb_pressed:
-        # LB pressed alone - decrease speed
-        if current_base_speed_level > 1:
-            current_base_speed_level -= 1
-            print(f"[BASE] Speed decreased to level {current_base_speed_level}")
-    elif rb_pressed and not lb_pressed:
-        # RB pressed alone - increase speed
-        if current_base_speed_level < 3:
-            current_base_speed_level += 1
-            print(f"[BASE] Speed increased to level {current_base_speed_level}")
+    # Check if LB is pressed alone (no stick movement)
+    left_stick_moved = (abs(axes[0]) > 0.5 or abs(axes[1]) > 0.5) if len(axes) > 1 else False
+    
+    # Speed control logic - LB alone toggles speed
+    if lb_pressed and not left_stick_moved:
+        # LB pressed alone - toggle speed
+        current_base_speed_level = 2 if current_base_speed_level == 1 else 1
+        speed_name = "MEDIUM" if current_base_speed_level == 2 else "LOW"
+        print(f"[BASE] Speed toggled to {speed_name} (level {current_base_speed_level})")
     
     # Map speed level to multiplier
     speed_multiplier = float(current_base_speed_level)
     
     return speed_multiplier
+
+def get_drive_mode_toggle(joystick):
+    """
+    Get drive mode toggle from XBOX controller - RB alone toggles between Arkanman and Omni drive.
+    Returns current drive mode ('arkanman' or 'omni') and prints mode changes.
+    """
+    # Read controller state
+    buttons = [joystick.get_button(i) for i in range(joystick.get_numbuttons())]
+    axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
+    
+    # Get RB state
+    rb_pressed = bool(buttons[5]) if len(buttons) > 5 else False
+    
+    # Get current drive mode from global variable
+    global current_drive_mode
+    if 'current_drive_mode' not in globals():
+        current_drive_mode = 'arkanman'  # Default drive mode
+    
+    # Check if RB is pressed alone (no stick movement)
+    right_stick_moved = (abs(axes[3]) > 0.5 or abs(axes[4]) > 0.5) if len(axes) > 4 else False
+    
+    # Drive mode toggle logic - RB alone toggles mode
+    if rb_pressed and not right_stick_moved:
+        # RB pressed alone - toggle drive mode
+        current_drive_mode = 'omni' if current_drive_mode == 'arkanman' else 'arkanman'
+        print(f"[BASE] Drive mode toggled to {current_drive_mode.upper()}")
+    
+    return current_drive_mode
 
 
 def main():
@@ -464,7 +494,7 @@ def main():
             right_action = right_arm.p_control_action(robot)
             head_action = head_control.p_control_action(robot)
 
-            # Get base action and speed control from controller
+            # Get base action, speed control, and drive mode from controller
             base_action = get_base_action(joystick, robot)
             speed_multiplier = get_base_speed_control(joystick)
             
